@@ -1,11 +1,7 @@
-CTFd.plugin.run((_CTFd) => {
-    const $ = _CTFd.lib.$;
-
-
 CTFd._internal.challenge.data = undefined
 
-CTFd._internal.challenge.renderer = null;
-//CTFd._internal.challenge.renderer = CTFd.lib.markdown();
+CTFd._internal.challenge.renderer = CTFd._internal.markdown;
+
 
 CTFd._internal.challenge.preRender = function () { }
 
@@ -13,28 +9,11 @@ CTFd._internal.challenge.render = function (markdown) {
     return CTFd._internal.challenge.renderer.render(markdown)
 }
 
-function waitForElement(selector, callback) {
-    const element = document.querySelector(selector);
-    if (element) {
-        callback(element);
-    } else {
-        requestAnimationFrame(() => waitForElement(selector, callback));
-    }
+
+CTFd._internal.challenge.postRender = function () { 
+    getDeployment(CTFd._internal.challenge.template_name)
 }
 
-CTFd._internal.challenge.postRender = function () {
-    waitForElement(".create-chal", (btn) => {
-        btn.addEventListener("click", () => createDeployment(btn));
-    });
-    waitForElement(".extend-chal", (btn) => {
-        btn.addEventListener("click", () => extendDeployment(btn));
-    });
-    waitForElement(".terminate-chal", (btn) => {
-        btn.addEventListener("click", () => terminateDeployment(btn));
-    });
-    getDeployment(CTFd._internal.challenge.template_name);
-    console.log(CTFd.lib.$('#challenge-id').val())
-}
 
 CTFd._internal.challenge.submit = function (preview) {
     var challenge_id = parseInt(CTFd.lib.$('#challenge-id').val())
@@ -69,18 +48,23 @@ function toggleLoading(btn) {
     icon.classList.toggle('fa-spinner');
 }
 
+function resetAlert() {
+    let alert = CTFd.lib.$(".deployment-actions > .alert").first();
+    alert.empty();
+    alert.removeClass("alert-danger");
+    return alert;
+}
 
 function toggleChallengeCreate() {
-    let btn = $(".create-chal").first();
+    let btn = CTFd.lib.$(".create-chal").first();
     btn.toggleClass('d-none');
-    console.log(btn);
 }
 
 function toggleChallengeUpdate() {
-    let btn = $(".extend-chal").first();
+    let btn = CTFd.lib.$(".extend-chal").first();
     btn.toggleClass('d-none');
 
-    btn = $(".terminate-chal").first();
+    btn = CTFd.lib.$(".terminate-chal").first();
     btn.toggleClass('d-none');
 }
 
@@ -135,85 +119,86 @@ function awaitChallengeReady(data) {
 }
 
 function getDeployment(deployment) {
-    waitForElement(".alert", (alert) => {
-        CTFd.fetch("api/kube_ctf/" + deployment, {
-            method: "GET",
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            if (data.success) {
-                createChallengeLinkElement(data, alert);
-                toggleChallengeUpdate();
-            } else {
-                alert.textContent = "Challenge not started";
-                toggleChallengeCreate();
-            }
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-            alert.textContent = "Challenge not started";
+    let alert = resetAlert();
+
+    CTFd.fetch("api/kube_ctf/" + deployment, {
+        method: "GET",
+    })
+    .then((response) => response.json())
+    .then((data) => {
+        if (data.success) {
+            createChallengeLinkElement(data, alert);
+            toggleChallengeUpdate();
+        } else {
+            alert[0].textContent = "Challenge not started";
             toggleChallengeCreate();
-        });
+        }
+    })
+    .catch((error) => {
+        alert.append("Challenge not started");
+        toggleChallengeCreate();
     });
+
 }
 
 function createDeployment(btn) {
-    console.log("ive been clicked!")
     let deployment = btn.dataset.deployment;
     toggleLoading(btn);
-    waitForElement(".alert", (alert) => {
-        CTFd.fetch("api/kube_ctf/" + deployment, {
-            method: "POST",
-            body: JSON.stringify({action: "create"}),
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            if (data.success) {
-                createChallengeLinkElement(data, alert);
-                toggleChallengeUpdate();
-                toggleChallengeCreate();
-                toggleLoading(btn);
-            } else {
-                alert.textContent = data.error || data.message;
-                alert.classList.add("alert-danger")
-                toggleLoading(btn);
-            }
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-            alert.textContent = "Error creating challenge"
-            alert.classList.add("alert-danger")
+    let alert = resetAlert();
+    // Can't use the nice format cause need to put content-type header in
+    CTFd.fetch("api/kube_ctf/" + deployment, {
+        method: "POST",
+        body: JSON.stringify({action: "create"}),
+    })
+    .then((response) => response.json())
+    .then((data) => {
+        console.log(data)
+        if (data.success) {
+            createChallengeLinkElement(data, alert);
+            toggleChallengeUpdate();
+            toggleChallengeCreate();
             toggleLoading(btn);
-        });
+        } else {
+            alert[0].textContent = data.error || data.message;
+            alert.addClass("alert-danger")
+            toggleLoading(btn);
+        }
+    })
+    .catch((error) => {
+        console.error("Error:", error);
+        alert[0].textContent = "Error creating challenge";
+        alert.addClass("alert-danger")
+        toggleLoading(btn);
     });
 }
 
 function extendDeployment(btn) {
     let deployment = btn.dataset.deployment;
     toggleLoading(btn);
-    waitForElement(".alert", (alert) => {
-        CTFd.fetch("api/kube_ctf/" + deployment, {
-            method: "POST",
-            body: JSON.stringify({action: "extend"}),
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            if (data.success) {
-                createChallengeLinkElement(data, alert)
-                toggleLoading(btn);
-            } else {
-                alert.textContent = data.error || data.message;
-                alert.classList.add("alert-danger")
-                toggleLoading(btn);
-            }
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-            alert.textContent = "Error extending challenge"
-            alert.classList.add("alert-danger")
+    let alert = resetAlert();
+
+    // Can't use the nice format cause need to put content-type header in
+    CTFd.fetch("api/kube_ctf/" + deployment, {
+        method: "POST",
+        body: JSON.stringify({action: "extend"}),
+    })
+    .then((response) => response.json())
+    .then((data) => {
+        if (data.success) {
+            createChallengeLinkElement(data, alert)
             toggleLoading(btn);
-        });
+        } else{
+            alert[0].textContent = data.error || data.message;
+            alert.addClass("alert-danger")
+            toggleLoading(btn);
+        }
+    })
+    .catch((error) => {
+        alert[0].textContent = error.responseJSON.error || error.responseJSON.message;
+        alert.addClass("alert-danger")
+        toggleLoading(btn);
     });
+
 }
 
 // function resetDeployment() {
@@ -223,30 +208,29 @@ function extendDeployment(btn) {
 function terminateDeployment(btn) {
     let deployment = btn.dataset.deployment;
     toggleLoading(btn);
-    waitForElement(".alert", (alert) => {
-        CTFd.fetch("api/kube_ctf/" + deployment, {
-            method: "POST",
-            body: JSON.stringify({action: "terminate"}),
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            if (data.success) {
-                alert.textContent = "Challenge Terminated."
-                toggleChallengeCreate();
-                toggleChallengeUpdate();
-                toggleLoading(btn);
-            } else {
-                alert.textContent = data.error || data.message;
-                alert.classList.add("alert-danger")
-                toggleLoading(btn);
-            }
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-            alert.textContent = "Error terminating challenge";
-            alert.classList.add("alert-danger")
+    let alert = resetAlert();
+
+    // Can't use the nice format cause need to put content-type header in
+    CTFd.fetch("api/kube_ctf/" + deployment, {
+        method: "POST",
+        body: JSON.stringify({action: "terminate"}),
+    })
+    .then((response) => response.json())
+    .then((data) => {
+        if (data.success) {
+            alert[0].textContent = "Challenge Terminated.";
+            toggleChallengeCreate();
+            toggleChallengeUpdate();
             toggleLoading(btn);
-        });
+        } else{
+            alert.append(data.error || data.message);
+            alert.addClass("alert-danger")
+            toggleLoading(btn);
+        }
+    })
+    .catch((error) => {
+        alert[0].textContent = error.responseJSON.error || error.responseJSON.message;
+        alert.addClass("alert-danger")
+        toggleLoading(btn);
     });
 }
-});
