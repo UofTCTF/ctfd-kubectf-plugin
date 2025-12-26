@@ -6,12 +6,12 @@ CTFd._internal.challenge.renderer = CTFd._internal.markdown;
 CTFd._internal.challenge.preRender = function () { }
 
 CTFd._internal.challenge.render = function (markdown) {
-    return CTFd._internal.challenge.renderer.render(markdown)
+    //return CTFd._internal.challenge.renderer.render(markdown)
 }
 
 
 CTFd._internal.challenge.postRender = function () { 
-    getDeployment(CTFd._internal.challenge.template_name)
+    getDeployment(CTFd._internal.challenge.data.template_name)
 }
 
 
@@ -77,6 +77,8 @@ function calculateExpiry(date) {
 function createChallengeLinkElement(data, parent) {
     let expiry = calculateExpiry(new Date(data.deployment.expires));
 
+    console.log(data)
+    console.log(parent)
     if (expiry > 0) {
         var expires = document.createElement('span');
         expires.textContent = "Expires in " + calculateExpiry(new Date(data.deployment.expires)) + " minutes.";
@@ -84,18 +86,16 @@ function createChallengeLinkElement(data, parent) {
         // TODO: remove this jank and have a proper way to determine how to connect to chals
         parent.append(expires);
         parent.append(document.createElement('br'));
-        if (data.deployment.host.includes("pwn")) {
-            var conn_string = document.createElement('span');
-            conn_string.textContent = `openssl s_client -quiet -connect ${data.deployment.host}:443`
-            parent.append(conn_string);
+//        if (data.deployment.host.includes("pwn")) {
+//            var conn_string = document.createElement('span');
+//            conn_string.textContent = `openssl s_client -quiet -connect ${data.deployment.host}:443`
+//            parent.append(conn_string);
 
-        } else {
-            let link = document.createElement('a');
-            link.href = 'https://' + data.deployment.host;
-            link.textContent = data.deployment.host;
-            link.target = '_blank'
-            parent.append(link);
-        }
+        let link = document.createElement('a');
+        link.href = 'https://' + data.deployment.host;
+        link.textContent = data.deployment.host;
+        link.target = '_blank'
+        parent.append(link);
 
         // Add admin bot link if challenge is tagged with bot
         const chalTag = CTFd.lib.$(".challenge-tag").last().text();
@@ -118,27 +118,41 @@ function awaitChallengeReady(data) {
     
 }
 
-function getDeployment(deployment) {
-    let alert = resetAlert();
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-    CTFd.fetch("api/kube_ctf/" + deployment, {
-        method: "GET",
-    })
-    .then((response) => response.json())
-    .then((data) => {
-        if (data.success) {
-            createChallengeLinkElement(data, alert);
-            toggleChallengeUpdate();
+async function getDeployment(deployment) {
+    async function waitForAlert() {
+        let alert = CTFd.lib.$(".deployment-actions > .alert").first();
+        if (alert.length > 0) {
+            await sleep(100);
+            alert = resetAlert();
+            console.log(deployment)
+            CTFd.fetch("api/kube_ctf/" + deployment, {
+                method: "GET",
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.deployment) {
+                    console.log(data.deployment)
+                    createChallengeLinkElement(data, alert);
+                    toggleChallengeUpdate();
+                } else {
+                    alert[0].textContent = "Challenge not started";
+                    toggleChallengeCreate();
+                }
+            })
+            .catch((error) => {
+                alert.append("Challenge not started");
+                toggleChallengeCreate();
+            });
         } else {
-            alert[0].textContent = "Challenge not started";
-            toggleChallengeCreate();
+            await sleep(50);
+            waitForAlert();
         }
-    })
-    .catch((error) => {
-        alert.append("Challenge not started");
-        toggleChallengeCreate();
-    });
-
+    }
+    await waitForAlert();
 }
 
 function createDeployment(btn) {
@@ -153,13 +167,15 @@ function createDeployment(btn) {
     .then((response) => response.json())
     .then((data) => {
         console.log(data)
-        if (data.success) {
+        if (data.deployment) {
+            // Wrap response in deployment object to match createChallengeLinkElement's expected structure
+            console.log(data.deployment)
             createChallengeLinkElement(data, alert);
             toggleChallengeUpdate();
             toggleChallengeCreate();
             toggleLoading(btn);
         } else {
-            alert[0].textContent = data.error || data.message;
+            alert[0].textContent = data.error || data.message || "Error creating challenge";
             alert.addClass("alert-danger")
             toggleLoading(btn);
         }
@@ -184,11 +200,12 @@ function extendDeployment(btn) {
     })
     .then((response) => response.json())
     .then((data) => {
-        if (data.success) {
+        if (data.deployment) {
+            // Wrap response in deployment object to match createChallengeLinkElement's expected structure
             createChallengeLinkElement(data, alert)
             toggleLoading(btn);
         } else{
-            alert[0].textContent = data.error || data.message;
+            alert[0].textContent = data.error || data.message || "Error extending challenge";
             alert.addClass("alert-danger")
             toggleLoading(btn);
         }
@@ -217,19 +234,19 @@ function terminateDeployment(btn) {
     })
     .then((response) => response.json())
     .then((data) => {
-        if (data.success) {
+        if (!data.error && !data.message) {
             alert[0].textContent = "Challenge Terminated.";
             toggleChallengeCreate();
             toggleChallengeUpdate();
             toggleLoading(btn);
-        } else{
-            alert.append(data.error || data.message);
-            alert.addClass("alert-danger")
+        } else {
+            alert[0].textContent = data.error || data.message || "Error terminating challenge";
+            alert.addClass("alert-danger");
             toggleLoading(btn);
         }
     })
     .catch((error) => {
-        alert[0].textContent = error.responseJSON.error || error.responseJSON.message;
+        alert[0].textContent = error.responseJSON.error || error.responseJSON.message || "Error Terminating";
         alert.addClass("alert-danger")
         toggleLoading(btn);
     });

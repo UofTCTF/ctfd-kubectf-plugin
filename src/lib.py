@@ -8,15 +8,17 @@ from .config import TIMEOUT
 
 AUTH_EXPIRY = 120
 
-def generate_jwt(aud, secret, owner_id='0', admin=False):
+def generate_jwt(aud, secret, owner_id='0', admin=False) -> str:
     m = {
         'owner_id': str(owner_id),
         'aud': aud,
         'exp': int(time.time()) + AUTH_EXPIRY,
         'admin': admin
     }
-
-    return jwt.encode(m, secret, algorithm='HS256')
+    customjwt = jwt.encode(m, secret, algorithm='HS256')
+    if (isinstance(customjwt, str)):
+        return customjwt
+    return customjwt.decode('utf-8')
 
 def error(error: Error):
     return {'error': error.type, 'message': error.message}, error.code
@@ -28,7 +30,8 @@ def get_deployment(host, secret, owner_id, admin, challenge):
     res = requests.get(
         f'{host}/deployments/{challenge}',
         headers={'authorization': f'Bearer {auth}'},
-        timeout=TIMEOUT)
+        timeout=TIMEOUT,
+        verify=False)
     return res.json(), res.status_code
 
 def create_deployment(host, secret, owner_id, admin, challenge):
@@ -38,7 +41,8 @@ def create_deployment(host, secret, owner_id, admin, challenge):
         f'{host}/deployments/{challenge}',
         json={},
         headers={'authorization': f'Bearer {auth}'},
-        timeout=TIMEOUT)
+        timeout=TIMEOUT,
+        verify=False)
     cache.delete_memoized(get_deployment, host, secret, owner_id, False, challenge)
     cache.delete_memoized(get_deployment, host, secret, owner_id, True, challenge)
     return res.json(), res.status_code
@@ -50,7 +54,8 @@ def extend_deployment(host, secret, owner_id, admin, challenge):
         f'{host}/deployments/{challenge}',
         json={'extend': True},
         headers={'authorization': f'Bearer {auth}'},
-        timeout=TIMEOUT)
+        timeout=TIMEOUT,
+        verify=False)
     cache.delete_memoized(get_deployment, host, secret, owner_id, False, challenge)
     cache.delete_memoized(get_deployment, host, secret, owner_id, True, challenge)
     return res.json(), res.status_code
@@ -61,7 +66,8 @@ def terminate_deployment(host, secret, owner_id, admin, challenge):
     res = requests.delete(
         f'{host}/deployments/{challenge}',
         headers={'authorization': f'Bearer {auth}'},
-        timeout=TIMEOUT)
+        timeout=TIMEOUT,
+        verify=False)
     cache.delete_memoized(get_deployment, host, secret, owner_id, False, challenge)
     cache.delete_memoized(get_deployment, host, secret, owner_id, True, challenge)
     return res.json(), res.status_code
