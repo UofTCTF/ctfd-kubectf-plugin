@@ -30,8 +30,7 @@ def get_deployment(host, secret, owner_id, admin, challenge):
     res = requests.get(
         f'{host}/deployments/{challenge}',
         headers={'authorization': f'Bearer {auth}'},
-        timeout=TIMEOUT,
-        verify=False)
+        timeout=TIMEOUT)
     return res.json(), res.status_code
 
 def create_deployment(host, secret, owner_id, admin, challenge):
@@ -41,8 +40,7 @@ def create_deployment(host, secret, owner_id, admin, challenge):
         f'{host}/deployments/{challenge}',
         json={},
         headers={'authorization': f'Bearer {auth}'},
-        timeout=TIMEOUT,
-        verify=False)
+        timeout=TIMEOUT)
     cache.delete_memoized(get_deployment, host, secret, owner_id, False, challenge)
     cache.delete_memoized(get_deployment, host, secret, owner_id, True, challenge)
     return res.json(), res.status_code
@@ -54,8 +52,7 @@ def extend_deployment(host, secret, owner_id, admin, challenge):
         f'{host}/deployments/{challenge}',
         json={'extend': True},
         headers={'authorization': f'Bearer {auth}'},
-        timeout=TIMEOUT,
-        verify=False)
+        timeout=TIMEOUT)
     cache.delete_memoized(get_deployment, host, secret, owner_id, False, challenge)
     cache.delete_memoized(get_deployment, host, secret, owner_id, True, challenge)
     return res.json(), res.status_code
@@ -66,8 +63,7 @@ def terminate_deployment(host, secret, owner_id, admin, challenge):
     res = requests.delete(
         f'{host}/deployments/{challenge}',
         headers={'authorization': f'Bearer {auth}'},
-        timeout=TIMEOUT,
-        verify=False)
+        timeout=TIMEOUT)
     cache.delete_memoized(get_deployment, host, secret, owner_id, False, challenge)
     cache.delete_memoized(get_deployment, host, secret, owner_id, True, challenge)
     return res.json(), res.status_code
