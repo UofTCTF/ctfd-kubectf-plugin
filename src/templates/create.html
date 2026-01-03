@@ -38,14 +38,14 @@
 			<ul>
 				<li>Linear: Calculated as <code>Initial - (Decay * SolveCount)</code></li>
 				<li>Logarithmic: Calculated as <code>(((Minimum - Initial) / (Decay^2)) * (SolveCount^2)) + Initial</code></li>
-				<li>Logarithmic Custom: Same behaviour as logarithmic, but uses https://www.desmos.com/calculator/k1tiifvn7s </li>
+				<li>Aachen: Calculated as <code>Custom, see discord</code></li>
 			</ul>
 		</small>
 	</label>
 	<select name="function" class="custom-select">
 		<option value="linear">Linear</option>
 		<option value="logarithmic">Logarithmic</option>
-		<option value="logarithmic_custom">Logarithmic Custom</option>
+		<option value="aachen">Aachen</option>
 	</select>
 </div>
 
@@ -57,7 +57,7 @@
 				<li>Linear: The amount of points deducted per solve. Equal deduction per solve.</li>
 				<li>Logarithmic: The amount of solves before the challenge reaches its minimum value. Earlier solves will lose less
 					points. Later solves will lose more points</li>
-				<li>Logarithmic Custom: The Decay value has <b>NO EFFECT</b> as this is built into the function</li>
+				<li>Aachen: Unused (pick any number).</li>
 			</ul>
 		</small>
 	</label>
@@ -67,7 +67,7 @@
 <div class="form-group">
 	<label for="value">Minimum Value<br>
 		<small class="form-text text-muted">
-			This is the lowest that the challenge can be worth
+			This is the lowest that the challenge can be worth. Unused for aachen
 		</small>
 	</label>
 	<input type="number" class="form-control" name="minimum" placeholder="Enter minimum value" required>
