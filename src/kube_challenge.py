@@ -21,7 +21,7 @@ class KubeChallenge(Challenges):
     initial = db.Column(db.Integer, default=0)
     minimum = db.Column(db.Integer, default=0)
     decay = db.Column(db.Integer, default=0)
-    function = db.Column(db.String(32), default="logarithmic_custom")
+    function = db.Column(db.String(32), default="aachen")
 
     def __init__(self, *args, **kwargs):
         super(KubeChallenge, self).__init__(**kwargs)
